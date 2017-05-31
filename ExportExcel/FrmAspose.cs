@@ -13,9 +13,9 @@ using System.Windows.Forms;
 
 namespace ExportExcel
 {
-    public partial class Form1 : Form
+    public partial class FrmAspose : Form
     {
-        public Form1()
+        public FrmAspose()
         {
             InitializeComponent();
         }
@@ -27,7 +27,7 @@ namespace ExportExcel
             var work = new Workbook(FileFormatType.Xlsx);
             var sheet = work.Worksheets.FirstOrDefault();
 
-            for (int i = 0; i < 100000; i++)
+            for (int i = 0; i < 10000; i++)
             {
                 for (int j = 0; j < 10000; j++)
                 {
@@ -65,7 +65,7 @@ namespace ExportExcel
 
             work.Save(@"D:\1.xlsx");
             st.Stop();
-            var msg = string.Format("Aspose,数据量10000*1000,耗时[{0}]秒", st.Elapsed.TotalSeconds);
+            var msg = string.Format("Aspose,数据量10000*10000,耗时[{0}]秒", st.Elapsed.TotalSeconds);
             MessageBox.Show(msg);
             Clipboard.SetDataObject(msg, true);
         }
