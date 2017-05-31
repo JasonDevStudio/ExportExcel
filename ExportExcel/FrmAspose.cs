@@ -65,7 +65,7 @@ namespace ExportExcel
 
             work.Save(@"D:\1.xlsx");
             st.Stop();
-            var msg = string.Format("Aspose,数据量10000*10000,耗时[{0}]秒", st.Elapsed.TotalSeconds);
+            var msg = string.Format("Aspose 数组维度超过了支持的范围。,数据量10000*10000,耗时[{0}]秒", st.Elapsed.TotalSeconds);
             MessageBox.Show(msg);
             Clipboard.SetDataObject(msg, true);
         }
