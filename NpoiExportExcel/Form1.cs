@@ -32,7 +32,7 @@ namespace NpoiExportExcel
             {
                 var row = sheet.CreateRow(i);
 
-                for (int j = 0; j < 1000; j++)
+                for (int j = 0; j < 10000; j++)
                 {
                     var cell = row.CreateCell(j);
                     cell.SetCellValue(Guid.NewGuid().ToString());
