@@ -49,6 +49,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="App_code\AsposeCellHelper.cs" />
     <Compile Include="FrmAspose.cs">
       <SubType>Form</SubType>
     </Compile>
