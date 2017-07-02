@@ -21,6 +21,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -32,9 +33,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Aspose.Cells, Version=8.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="Aspose.Cells, Version=17.5.0.0, Culture=neutral, PublicKeyToken=716fcc553a201e56, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Aspose.Cells\net4.0\Aspose.Cells.dll</HintPath>
+      <HintPath>..\packages\Aspose.Cells17\net4.0\Aspose.Cells.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -50,6 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App_code\AsposeCellHelper.cs" />
+    <Compile Include="App_code\AuthorizeHelper.cs" />
     <Compile Include="FrmAspose.cs">
       <SubType>Form</SubType>
     </Compile>

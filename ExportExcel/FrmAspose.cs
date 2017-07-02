@@ -121,13 +121,14 @@ namespace ExportExcel
             table.Columns.Add(new DataColumn() { ColumnName = "TESTER", Caption = "机台" });
             table.Columns.Add(new DataColumn() { ColumnName = "DEVICENO", Caption = "芯片编号" });
             table.Columns.Add(new DataColumn() { ColumnName = "SUBNAME", Caption = "Sub Name" });
+            table.Columns.Add(new DataColumn() { ColumnName = "PINNAMNE", Caption = "Pin Name" });
 
             foreach (DataColumn item in table.Columns)
             {
                 dics.Add(item.ColumnName, item.Caption);
             }
 
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < 1000000; i++)
             {
                 var row = table.NewRow();
                 row["ID"] = i;
@@ -138,10 +139,15 @@ namespace ExportExcel
                 row["CORNER"] = "TT";
                 row["TESTER"] = "DDFGSHGKJDFGKDJHSDGF";
                 row["SUBNAME"] = Guid.NewGuid().ToString();
+                row["PINNAMNE"] = "DDFGSHGKJDFGKDJHSDGF";
                 table.Rows.Add(row);
             }
 
-            table.Export(dics, @"D:\Temp\1.xlsx", format: SaveFormat.Xlsx);
+            var st = new Stopwatch();
+            st.Restart();
+            var recount = table.WriteToExcel(dics, @"D:\Temp\3.csv", temp_path: @"D:\Temp\temp.csv", format: FileFormatType.CSV);
+            st.Stop();
+            MessageBox.Show(string.Format("写入数据 [{0}]  ,耗时 [{1}] 秒", recount, st.Elapsed.TotalSeconds)); 
         }
 
         private void button3_Click(object sender, EventArgs e)
@@ -155,7 +161,7 @@ namespace ExportExcel
             dics.Add("CORNER", "工艺");
             dics.Add("TESTER", "机台");
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 110; i++)
             {
                 entyties.Add(new TestEntity()
                 {
@@ -168,9 +174,41 @@ namespace ExportExcel
                 });
             }
 
-            entyties.Export(dics, @"D:\Temp\2.xlsx", format: SaveFormat.Xlsx);
+            var recount = entyties.WriteToExcel(dics, @"D:\Temp\3.xlsx", temp_path: @"D:\Temp\temp.xlsx", format: FileFormatType.Xlsx);
+            MessageBox.Show(string.Format("Excel行数 {0}", recount));
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            var table = new DataTable();
+            var dics = new Dictionary<string, string>();
+            table.Columns.Add(new DataColumn() { ColumnName = "ID", Caption = "编号" });
+            table.Columns.Add(new DataColumn() { ColumnName = "NAME", Caption = "名称" });
+            table.Columns.Add(new DataColumn() { ColumnName = "VALUE", Caption = "值" });
+            table.Columns.Add(new DataColumn() { ColumnName = "TEMP", Caption = "温度" });
+            table.Columns.Add(new DataColumn() { ColumnName = "CORNER", Caption = "工艺" });
+            table.Columns.Add(new DataColumn() { ColumnName = "TESTER", Caption = "机台" });
+            table.Columns.Add(new DataColumn() { ColumnName = "DEVICENO", Caption = "芯片编号" });
+            table.Columns.Add(new DataColumn() { ColumnName = "SUBNAME", Caption = "Sub Name" });
+            table.Columns.Add(new DataColumn() { ColumnName = "PINNAMNE", Caption = "Pin Name" });
+
+            foreach (DataColumn item in table.Columns)
+            {
+                dics.Add(item.ColumnName, item.Caption);
+            }
+
+            var st = new Stopwatch();
+            st.Restart();
+            table.ReadExcel(dics, @"D:\Temp\3.csv", format: FileFormatType.CSV);
+            st.Stop();
+            MessageBox.Show(string.Format("耗时 [{0}] 秒", st.Elapsed.TotalSeconds));
+
+            this.dataGridView1.DataSource = table;
         }
     }
+
+
+
 
     public class TestEntity
     {

@@ -15,7 +15,7 @@ namespace ExportExcel.App_code
     /// </summary>
     public static class AsposeExcelHelper
     {
-        #region Export
+        #region WriteToExcel
 
         /// <summary>
         /// 合并单元格
@@ -81,7 +81,7 @@ namespace ExportExcel.App_code
         /// <param name="totalRows">行数</param>
         /// <param name="totalColumns">列数</param>
         /// <param name="style">样式</param>
-        private static void SetTitle(this Worksheet sheet, string title, int firstRow, int firstColumn, int totalRows, int totalColumns, Style style)
+        public static void SetTitle(this Worksheet sheet, string title, int firstRow, int firstColumn, int totalRows, int totalColumns, Style style)
         {
             try
             {
@@ -104,7 +104,7 @@ namespace ExportExcel.App_code
         /// <param name="style">样式</param>
         /// <param name="rowIndex">行号</param>
         /// <param name="columnIndex">列索引</param>
-        private static void SetColumnHeader(this Worksheet sheet, string name, Style style, int rowIndex, int columnIndex)
+        public static void SetColumnHeader(this Worksheet sheet, string name, Style style, int rowIndex, int columnIndex)
         {
             try
             {
@@ -126,7 +126,7 @@ namespace ExportExcel.App_code
         /// <param name="style">样式</param>
         /// <param name="rowIndex">行号</param>
         /// <param name="columnIndex">列索引</param>
-        private static void SetColumnHeaders(this Worksheet sheet, Dictionary<string, string> dicProPerties, Style style, int firstRow, int firstColumn)
+        public static void SetColumnHeaders(this Worksheet sheet, Dictionary<string, string> dicProPerties, Style style, int firstRow, int firstColumn)
         {
             try
             {
@@ -152,7 +152,7 @@ namespace ExportExcel.App_code
         /// <param name="width">宽度</param>
         /// <param name="height">高度</param>
         /// <param name="autosize">是否自动大小</param>
-        private static void SetComment(this Worksheet sheet, string txt, int firstRow, int firstColumn, int width, int height, bool autosize = false)
+        public static void SetComment(this Worksheet sheet, string txt, int firstRow, int firstColumn, int width, int height, bool autosize = false)
         {
             try
             {
@@ -183,7 +183,7 @@ namespace ExportExcel.App_code
         /// <param name="dicProPerties">需要写入EXCEL的属性集合</param>
         /// <param name="firstRow">首行</param>
         /// <param name="firstColumn">首列</param>
-        private static void SetCellValues(this Worksheet sheet, DataTable data, Dictionary<string, string> dicProPerties, int firstRow, int firstColumn)
+        public static void SetCellValues(this Worksheet sheet, DataTable data, Dictionary<string, string> dicProPerties, int firstRow, int firstColumn)
         {
             try
             {
@@ -197,7 +197,9 @@ namespace ExportExcel.App_code
                         var val = row[item.Key];
                         var cell = sheet.Cells[firstRow, colIndex];
                         cell.PutValue(val);
-                        sheet.SetComment(Guid.NewGuid().ToString(), firstRow, colIndex, -1, -1, true);
+
+                        // sheet.SetComment(Guid.NewGuid().ToString(), firstRow, colIndex, -1, -1, true); // 批注
+
                         colIndex++;
                     }
 
@@ -218,7 +220,7 @@ namespace ExportExcel.App_code
         /// <param name="dicProPerties">需要写入EXCEL的属性集合</param>
         /// <param name="firstRow">首行</param>
         /// <param name="firstColumn">首列</param>
-        private static void SetCellValues<T>(this Worksheet sheet, List<T> data, Dictionary<string, string> dicProPerties, int firstRow, int firstColumn)
+        public static void SetCellValues<T>(this Worksheet sheet, List<T> data, Dictionary<string, string> dicProPerties, int firstRow, int firstColumn)
         {
             try
             {
@@ -240,7 +242,8 @@ namespace ExportExcel.App_code
                             {
                                 var cell = sheet.Cells[firstRow, colIndex];
                                 cell.PutValue(val);
-                                sheet.SetComment(Guid.NewGuid().ToString(), firstRow, colIndex, 300, 100, false);
+
+                                // sheet.SetComment(Guid.NewGuid().ToString(), firstRow, colIndex, 300, 100, false); // 批注
                             }
                         }
 
@@ -264,18 +267,21 @@ namespace ExportExcel.App_code
         /// <param name="path">导出文件路径</param>
         /// <param name="temp_path">模板路径</param>
         /// <param name="format">保存文件格式</param>
-        /// <returns></returns>
-        public static bool Export(this DataTable data, Dictionary<string, string> dicProPerties, string path, string temp_path = null, SaveFormat format = SaveFormat.Xlsx)
+        /// <returns>写入EXCEL的数据行数</returns>
+        public static int WriteToExcel(this DataTable data, Dictionary<string, string> dicProPerties, string path, string temp_path = null, FileFormatType format = FileFormatType.Xlsx)
         {
-            var result = false;
+            var recount = 0;
 
             try
             {
+                AuthorizeHelper.ActivateMemoryPatching();
+
                 Workbook workbook = null;
+                var loadformat = format == FileFormatType.CSV ? LoadFormat.CSV : LoadFormat.Xlsx;
 
                 if (temp_path != null && File.Exists(temp_path))
                 {
-                    workbook = new Workbook(temp_path, new LoadOptions() { MemorySetting = MemorySetting.MemoryPreference }); //工作簿  
+                    workbook = new Workbook(temp_path, new TxtLoadOptions(loadformat) { Encoding = Encoding.Default }); //工作簿  
                 }
                 else
                 {
@@ -287,16 +293,17 @@ namespace ExportExcel.App_code
 
                 sheet.SetColumnHeaders(dicProPerties, null, 0, 0);
                 sheet.SetCellValues(data, dicProPerties, 1, 0);
-                workbook.Save(path, format);
-
-                result = true;
+                workbook.Save(path, new TxtSaveOptions((SaveFormat)format) { Encoding = Encoding.Default });
+                recount = cells.Rows.Count;
+                sheet = null;
+                workbook = null;
             }
             catch (Exception ex)
             {
                 throw ex;
             }
 
-            return result;
+            return recount;
         }
 
         /// <summary>
@@ -307,22 +314,26 @@ namespace ExportExcel.App_code
         /// <param name="path">导出文件路径</param>
         /// <param name="temp_path">模板路径</param>
         /// <param name="format">保存文件格式</param>
-        /// <returns></returns>
-        public static bool Export<T>(this List<T> data, Dictionary<string, string> dicProPerties, string path, string temp_path = null, SaveFormat format = SaveFormat.Xlsx)
+        /// <returns>写入Excel数据行数</returns>
+        public static int WriteToExcel<T>(this List<T> data, Dictionary<string, string> dicProPerties, string path, string temp_path = null, FileFormatType format = FileFormatType.Xlsx)
         {
-            var result = false;
+            var recount = 0;
 
             try
             {
+                AuthorizeHelper.ActivateMemoryPatching();
+
                 Workbook workbook = null;
+                var loadformat = format == FileFormatType.CSV ? LoadFormat.CSV : LoadFormat.Xlsx;
 
                 if (temp_path != null && File.Exists(temp_path))
                 {
-                    workbook = new Workbook(temp_path, new LoadOptions() { MemorySetting = MemorySetting.MemoryPreference }); //工作簿  
+                    workbook = new Workbook(temp_path, new TxtLoadOptions(loadformat) { Encoding = Encoding.Default }); //工作簿  
                 }
                 else
                 {
-                    workbook = new Workbook(FileFormatType.Xlsx); //工作簿  
+
+                    workbook = new Workbook(format); //工作簿  
                 }
 
                 var sheet = workbook.Worksheets[0]; //工作表  
@@ -330,16 +341,217 @@ namespace ExportExcel.App_code
 
                 sheet.SetColumnHeaders(dicProPerties, null, 0, 0);
                 sheet.SetCellValues(data, dicProPerties, 1, 0);
-                workbook.Save(path, format);
-
-                result = true;
+                workbook.Save(path, new TxtSaveOptions((SaveFormat)format) { Encoding = Encoding.Default });
+                recount = cells.Rows.Count;
+                sheet = null;
+                workbook = null;
             }
             catch (Exception ex)
             {
                 throw ex;
             }
 
-            return result;
+            return recount;
+        }
+
+        #endregion
+
+        #region ReadExcel
+
+        /// <summary>
+        /// 读取Excel到DataTable
+        /// </summary>
+        /// <param name="data">DataTable</param>
+        /// <param name="dicProPerties">属性集合</param>
+        /// <param name="path">Excel文件地址</param>
+        /// <param name="isColumnHead">是否包含列头</param>
+        /// <param name="format">文件格式</param>
+        /// <returns>DataTable</returns>
+        public static DataTable ReadExcel(this DataTable data, Dictionary<string, string> dicProPerties, string path, bool isColumnHead = true, FileFormatType format = FileFormatType.Xlsx)
+        {
+            try
+            {
+                AuthorizeHelper.ActivateMemoryPatching();
+                Workbook workbook = null;
+                var loadformat = format == FileFormatType.CSV ? LoadFormat.CSV : LoadFormat.Xlsx;
+
+                if (format == FileFormatType.CSV)
+                {
+                    workbook = new Workbook(path, new TxtLoadOptions(loadformat) { Encoding = Encoding.Default }); //工作簿
+                }
+                else
+                {
+                    workbook = new Workbook(path, new LoadOptions(loadformat)); //工作簿
+                }
+
+                var sheet = workbook.Worksheets[0]; //工作表  
+                var cells = sheet.Cells;//单元格  
+                var dicExcelColHeaders = new Dictionary<string, int>();
+
+                if (isColumnHead)
+                {
+                    for (int i = 0; ; i++)
+                    {
+                        object val = null;
+                        var cell = cells[0, i];
+
+                        if (cell.IsMerged)
+                        {
+                            var range = cell.GetMergedRange();
+                            val = range.Value;
+                        }
+                        else
+                        {
+                            val = cell.StringValue;
+                        }
+
+                        if (val != null && !string.IsNullOrWhiteSpace(val.ToString()))
+                        {
+                            dicExcelColHeaders.Add(val.ToString(), i);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                for (int i = 1; i < cells.Rows.Count; i++)
+                {
+                    var row = data.NewRow();
+
+                    foreach (var item in dicProPerties)
+                    {
+                        if (dicExcelColHeaders.ContainsKey(item.Value))
+                        {
+                            object val = null;
+                            var cell = cells[i, dicExcelColHeaders[item.Value]];
+                            if (cell.IsMerged)
+                            {
+                                var range = cell.GetMergedRange();
+                                val = range.Value;
+                            }
+                            else
+                            {
+                                val = cell.Value;
+                            }
+
+                            row[item.Key] = val;
+                        }
+                    }
+
+                    data.Rows.Add(row);
+                }
+
+                sheet = null;
+                workbook = null;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// 读取Excel到集合
+        /// </summary> 
+        /// <param name="dicProPerties">属性集合</param>
+        /// <param name="path">Excel文件地址</param>
+        /// <param name="isColumnHead">是否包含列头</param>
+        /// <param name="format">文件格式</param>
+        /// <returns>数据集合</returns>
+        public static List<T> ReadExcel<T>(Dictionary<string, string> dicProPerties, string path, bool isColumnHead = true, FileFormatType format = FileFormatType.Xlsx)
+        {
+            try
+            {
+                AuthorizeHelper.ActivateMemoryPatching();
+
+                var t = typeof(T);
+                var properties = t.GetProperties();
+                var objs = new List<T>();
+
+                Workbook workbook = null;
+                var loadformat = format == FileFormatType.CSV ? LoadFormat.CSV : LoadFormat.Xlsx;
+
+                if (format == FileFormatType.CSV)
+                {
+                    workbook = new Workbook(path, new TxtLoadOptions(loadformat) { Encoding = Encoding.Default }); //工作簿
+                }
+                else
+                {
+                    workbook = new Workbook(path, new LoadOptions(loadformat)); //工作簿
+                }
+
+                var sheet = workbook.Worksheets[0]; //工作表  
+                var cells = sheet.Cells;//单元格  
+                var dicExcelColHeaders = new Dictionary<string, int>();
+
+                if (isColumnHead)
+                {
+                    for (int i = 0; ; i++)
+                    {
+                        object val = null;
+                        var cell = cells[0, i];
+
+                        if (cell.IsMerged)
+                        {
+                            var range = cell.GetMergedRange();
+                            val = range.Value;
+                        }
+                        else
+                        {
+                            val = cell.Value;
+                        }
+
+                        if (val != null && !string.IsNullOrWhiteSpace(val.ToString()))
+                        {
+                            dicExcelColHeaders.Add(val.ToString(), i);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                for (int i = 1; i < cells.Rows.Count; i++)
+                {
+                    var obj = t.Assembly.CreateInstance(t.FullName);
+
+                    foreach (var item in dicProPerties)
+                    {
+                        if (dicExcelColHeaders.ContainsKey(item.Value) && properties.Any(m => m.Name == item.Key))
+                        {
+                            object val = null;
+                            var property = properties.FirstOrDefault(m => m.Name == item.Key);
+                            var cell = cells[i, dicExcelColHeaders[item.Value]];
+                            if (cell.IsMerged)
+                            {
+                                var range = cell.GetMergedRange();
+                                val = range.Value;
+                            }
+                            else
+                            {
+                                val = cell.Value;
+                            }
+
+                            property.SetValue(obj, val);
+                        }
+                    }
+
+                    objs.Add((T)obj);
+                }
+
+                sheet = null;
+                workbook = null;
+                return objs;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         #endregion
