@@ -15,6 +15,8 @@ namespace ExportExcel.App_code
     /// </summary>
     public static class AsposeExcelHelper
     {
+        #region Export
+
         /// <summary>
         /// 合并单元格
         /// </summary>
@@ -81,10 +83,17 @@ namespace ExportExcel.App_code
         /// <param name="style">样式</param>
         private static void SetTitle(this Worksheet sheet, string title, int firstRow, int firstColumn, int totalRows, int totalColumns, Style style)
         {
-            sheet.Cells.Merge(firstRow, firstColumn, totalRows, totalColumns);//合并单元格  
-            var cell = sheet.Cells[0, 0];
-            cell.PutValue(title);
-            cell.SetStyle(style);
+            try
+            {
+                sheet.Cells.Merge(firstRow, firstColumn, totalRows, totalColumns);//合并单元格  
+                var cell = sheet.Cells[0, 0];
+                cell.PutValue(title);
+                cell.SetStyle(style);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         /// <summary>
@@ -97,9 +106,16 @@ namespace ExportExcel.App_code
         /// <param name="columnIndex">列索引</param>
         private static void SetColumnHeader(this Worksheet sheet, string name, Style style, int rowIndex, int columnIndex)
         {
-            var cell = sheet.Cells[rowIndex, columnIndex];
-            cell.PutValue(name);
-            cell.SetStyle(style);
+            try
+            {
+                var cell = sheet.Cells[rowIndex, columnIndex];
+                cell.PutValue(name);
+                cell.SetStyle(style);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         /// <summary>
@@ -112,10 +128,50 @@ namespace ExportExcel.App_code
         /// <param name="columnIndex">列索引</param>
         private static void SetColumnHeaders(this Worksheet sheet, Dictionary<string, string> dicProPerties, Style style, int firstRow, int firstColumn)
         {
-            foreach (var item in dicProPerties)
+            try
             {
-                sheet.SetColumnHeader(item.Value, style, firstRow, firstColumn);
-                firstColumn++;
+                foreach (var item in dicProPerties)
+                {
+                    sheet.SetColumnHeader(item.Value, style, firstRow, firstColumn);
+                    firstColumn++;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        /// <summary>
+        /// 添加设置批注
+        /// </summary>
+        /// <param name="sheet">Worksheet</param>
+        /// <param name="txt">批注内容</param>
+        /// <param name="firstRow">起始行</param>
+        /// <param name="firstColumn">起始列</param>
+        /// <param name="width">宽度</param>
+        /// <param name="height">高度</param>
+        /// <param name="autosize">是否自动大小</param>
+        private static void SetComment(this Worksheet sheet, string txt, int firstRow, int firstColumn, int width, int height, bool autosize = false)
+        {
+            try
+            {
+                var index = sheet.Comments.Add(firstRow, firstColumn);
+                var comment = sheet.Comments[index];
+                comment.AutoSize = autosize;
+                comment.TextHorizontalAlignment = TextAlignmentType.Left;
+                comment.TextVerticalAlignment = TextAlignmentType.Left;
+                comment.CommentShape.HtmlText = txt;
+
+                if (!autosize)
+                {
+                    comment.CommentShape.Width = width;
+                    comment.CommentShape.Height = height;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
 
@@ -129,16 +185,28 @@ namespace ExportExcel.App_code
         /// <param name="firstColumn">首列</param>
         private static void SetCellValues(this Worksheet sheet, DataTable data, Dictionary<string, string> dicProPerties, int firstRow, int firstColumn)
         {
-            for (int r = 0; r < data.Rows.Count; r++)
+            try
             {
-                var row = data.Rows[r];
-
-                foreach (var item in dicProPerties)
+                for (int r = 0; r < data.Rows.Count; r++)
                 {
-                    var val = row[item.Key];
-                    var cell = sheet.Cells[firstRow, firstColumn];
-                    cell.PutValue(val);
+                    var row = data.Rows[r];
+                    var colIndex = firstColumn;
+
+                    foreach (var item in dicProPerties)
+                    {
+                        var val = row[item.Key];
+                        var cell = sheet.Cells[firstRow, colIndex];
+                        cell.PutValue(val);
+                        sheet.SetComment(Guid.NewGuid().ToString(), firstRow, colIndex, -1, -1, true);
+                        colIndex++;
+                    }
+
+                    firstRow++;
                 }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
 
@@ -152,26 +220,39 @@ namespace ExportExcel.App_code
         /// <param name="firstColumn">首列</param>
         private static void SetCellValues<T>(this Worksheet sheet, List<T> data, Dictionary<string, string> dicProPerties, int firstRow, int firstColumn)
         {
-            for (int r = 0; r < data.Count; r++)
+            try
             {
-                var obj = data[r];
-                var t = typeof(T);
-
-                foreach (var item in dicProPerties)
+                for (int r = 0; r < data.Count; r++)
                 {
-                    var p = t.GetProperty(item.Key);
+                    var obj = data[r];
+                    var t = typeof(T);
+                    var colIndex = firstColumn;
 
-                    if (p != null)
+                    foreach (var item in dicProPerties)
                     {
-                        var val = p.GetValue(obj);
+                        var p = t.GetProperty(item.Key);
 
-                        if (val != null)
+                        if (p != null)
                         {
-                            var cell = sheet.Cells[firstRow, firstColumn];
-                            cell.PutValue(val);
+                            var val = p.GetValue(obj);
+
+                            if (val != null)
+                            {
+                                var cell = sheet.Cells[firstRow, colIndex];
+                                cell.PutValue(val);
+                                sheet.SetComment(Guid.NewGuid().ToString(), firstRow, colIndex, 300, 100, false);
+                            }
                         }
+
+                        colIndex++;
                     }
+
+                    firstRow++;
                 }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
 
@@ -260,5 +341,7 @@ namespace ExportExcel.App_code
 
             return result;
         }
+
+        #endregion
     }
 }
